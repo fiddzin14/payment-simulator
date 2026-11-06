@@ -1,0 +1,8 @@
+{
+  "name": "lumen-gateway-passenger-entry",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  }
+}

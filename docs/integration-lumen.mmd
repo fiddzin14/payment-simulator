@@ -1,0 +1,17 @@
+sequenceDiagram
+    title Integrasi Laravel Gateway dengan Lumen Studio
+    participant Klien
+    participant LumenStudio
+    participant GatewayLaravel
+    participant Ponsel
+    Klien->>LumenStudio: Pilih paket dan booking tanggal serta waktu
+    LumenStudio->>GatewayLaravel: POST /v1/payments dengan API key dan Idempotency-Key
+    GatewayLaravel-->>LumenStudio: Payment ID, QR URL atau VA, nominal dan expiry
+    LumenStudio-->>Klien: Tampilkan pembayaran DP atau pelunasan
+    Klien->>Ponsel: Scan QR melalui kamera
+    Ponsel->>GatewayLaravel: GET /qris/checkoutToken
+    GatewayLaravel-->>Ponsel: Catat receipt sekali dan tampilkan konfirmasi
+    GatewayLaravel->>LumenStudio: POST webhook payment.paid dengan HMAC
+    LumenStudio->>GatewayLaravel: GET /v1/payments/paymentId untuk verifikasi
+    GatewayLaravel-->>LumenStudio: Status authoritative, merchant, reference dan nominal
+    LumenStudio-->>Klien: Konfirmasi booking dan sediakan kuitansi PDF

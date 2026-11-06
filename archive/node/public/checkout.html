@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkout — Lumen Simulator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="checkout-body">
+    <main class="checkout-shell">
+      <a class="brand" href="/"
+        >◎ <span>Lumen <small>SIMULATED CHECKOUT</small></span></a
+      >
+      <section class="panel checkout-card">
+        <span class="demo-badge">SIMULATION ONLY · TIDAK ADA UANG DITAGIH</span>
+        <h1>Selesaikan skenario pembayaran.</h1>
+        <p class="muted">Halaman ini mewakili checkout milik provider.</p>
+        <div id="checkoutDetails"></div>
+        <form id="checkoutForm">
+          <label class="field"
+            >Contoh metode<select name="method">
+              <option>Virtual account demo</option>
+              <option>QRIS demo</option>
+              <option>E-wallet demo</option>
+            </select></label
+          ><label class="field"
+            >Hasil yang ingin disimulasikan<select name="scenario">
+              <option value="succeeded">Pembayaran berhasil</option>
+              <option value="pending">Pembayaran masih pending</option>
+              <option value="failed">Pembayaran gagal</option>
+            </select></label
+          ><button class="button primary full" type="submit">Simulasikan pembayaran ↗</button>
+        </form>
+        <div id="checkoutResult" role="status" aria-live="polite"></div>
+        <a id="returnLink" class="return-link" href="/">Kembali ke merchant ↗</a>
+        <p class="checkout-note">
+          Redirect hanya untuk navigasi. Merchant memverifikasi pembayaran melalui webhook server.
+        </p>
+      </section>
+      <small>Gateway simulator untuk pengembangan lokal · IDR dalam rupiah utuh</small>
+    </main>
+    <script type="module" src="checkout.js"></script>
+  </body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lumen — Payment Gateway Lab</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <a class="brand" href="/"
+        >◎ <span>Lumen <small>GATEWAY LAB</small></span></a
+      ><span class="demo-badge">LOCAL SIMULATOR</span>
+      <div class="connection">
+        <label
+          >Control key<input
+            id="controlKey"
+            type="password"
+            value="local-control-demo"
+            autocomplete="off"
+            aria-label="Simulator control key" /></label
+        ><button class="button secondary" id="refreshButton">Connect / refresh ↻</button>
+      </div>
+    </header>
+    <main class="workspace">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow">PAYMENT INTEGRATION WORKSPACE</span>
+          <h1>Uji pembayaran. Pahami alurnya.</h1>
+          <p>Checkout gateway, webhook, dan verifikasi transfer dalam satu tempat.</p>
+        </div>
+        <label class="delivery-toggle"
+          ><input id="automaticDelivery" type="checkbox" checked /><span
+            ><strong>Kirim webhook otomatis</strong
+            ><small>Matikan untuk mencoba event tertunda dan retry.</small></span
+          ></label
+        >
+      </div>
+      <div class="notice">
+        <span>i</span>
+        <p>
+          Semua transaksi menggunakan data simulasi. Invoice merchant berubah setelah webhook
+          terverifikasi atau transfer disetujui admin.
+        </p>
+        <span class="simulation-pill">NO REAL MONEY</span>
+      </div>
+      <section class="metrics" id="metrics" aria-label="Ringkasan simulator"></section>
+      <div class="lab-grid">
+        <aside class="panel order-panel">
+          <div class="panel-heading">
+            <h2>Invoice demo</h2>
+            <button class="icon-button" id="openCreate" aria-label="Buat invoice demo">+</button>
+          </div>
+          <p class="panel-description">Mock merchant untuk alur Laravel.</p>
+          <div id="orderList"></div>
+          <div class="order-help">
+            <strong>Dua sistem, dua status.</strong>
+            <p>
+              Provider mencatat hasil checkout. Merchant menghitung invoice dari receipt yang sudah
+              diverifikasi.
+            </p>
+          </div>
+        </aside>
+        <section class="main-column">
+          <article class="panel" id="merchantPanel"></article>
+          <article class="panel" id="attemptPanel"></article>
+          <article class="panel" id="receiptPanel"></article>
+        </section>
+        <aside class="panel webhook-panel">
+          <div class="panel-heading">
+            <h2>Webhook inbox</h2>
+            <span class="count" id="eventCount">0</span>
+          </div>
+          <p class="panel-description">Lihat hasil kirim, payload, dan replay event.</p>
+          <div id="eventList"></div>
+          <div class="webhook-help">
+            <span class="eyebrow">SIGNED SERVER EVENT</span><code>X-Simulator-Signature</code>
+            <p>
+              HMAC-SHA256 dari timestamp dan raw JSON. Event yang sama hanya mencatat satu receipt.
+            </p>
+          </div>
+        </aside>
+      </div>
+      <section class="panel activity-panel">
+        <div class="panel-heading">
+          <h2>Aktivitas integrasi</h2>
+          <span class="subtle">WIB / GMT+7</span>
+        </div>
+        <div id="activityList"></div>
+      </section>
+      <footer>
+        Dependency-free Node.js · Data disimpan di memori, reset saat server berhenti · Kontrak
+        integrasi tersedia di README
+      </footer>
+    </main>
+    <dialog id="createDialog" aria-labelledby="createTitle">
+      <form id="createForm">
+        <div class="dialog-heading">
+          <span class="eyebrow">NEW MOCK MERCHANT INVOICE</span
+          ><button type="button" class="icon-button" id="closeCreate" aria-label="Tutup dialog">
+            ×
+          </button>
+        </div>
+        <h2 id="createTitle">Buat skenario baru.</h2>
+        <p class="muted">
+          Invoice ini mewakili quote yang sudah disetujui dan tanggal yang ditahan.
+        </p>
+        <label class="field"
+          >Nama klien / skenario<input
+            name="client_label"
+            value="Maya & Arga"
+            required
+            maxlength="100"
+        /></label>
+        <div class="form-grid">
+          <label class="field"
+            >Total invoice (rupiah)<input
+              name="total_amount"
+              type="number"
+              min="1"
+              max="10000000000"
+              step="1"
+              value="12500000"
+              required /></label
+          ><label class="field"
+            >DP minimum (rupiah)<input
+              name="deposit_amount"
+              type="number"
+              min="0"
+              step="1"
+              value="6250000"
+              required
+          /></label>
+        </div>
+        <label class="field"
+          >Lama hold reservasi (menit)<input
+            name="hold_minutes"
+            type="number"
+            min="1"
+            max="10080"
+            value="1440"
+            required /></label
+        ><button type="submit" class="button primary full">Buat invoice demo ↗</button>
+      </form>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

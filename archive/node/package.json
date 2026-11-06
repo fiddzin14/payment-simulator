@@ -1,0 +1,17 @@
+{
+  "name": "lumen-payment-gateway-simulator",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "legacy": "node legacy-server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "qrcode": "1.5.4"
+  }
+}

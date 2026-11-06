@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Integration Guide - Lumen Gateway</title>
+    <link rel="stylesheet" href="/portal.css" />
+  </head>
+  <body>
+    <main class="doc-shell">
+      <header class="doc-top">
+        <a class="brand" href="/"
+          ><b class="brand-mark">L</b
+          ><span>Lumen Gateway<small>DEVELOPER DOCUMENTATION</small></span></a
+        ><a class="button secondary" href="/guide.pdf" target="_blank">Download PDF ↗</a>
+      </header>
+      <div class="doc-heading">
+        <span class="eyebrow">SANDBOX API v2 · QRIS & VIRTUAL ACCOUNT</span>
+        <h1>Hubungkan aplikasi.<br />Uji setiap kemungkinan.</h1>
+        <p>
+          Dari meminta kredensial hingga memverifikasi webhook. Semua transaksi memakai dana dan
+          instrumen simulasi.
+        </p>
+      </div>
+      <div class="doc-layout">
+        <nav class="doc-toc">
+          <a href="#quickstart">01 Quickstart</a><a href="#channels">02 Payment channels</a
+          ><a href="#webhook">03 Webhook verification</a
+          ><a href="#lifecycle">04 Lifecycle & idempotency</a
+          ><a href="#reference">05 Endpoint reference</a><a href="#hosting">06 Shared deployment</a>
+        </nav>
+        <article class="doc-content">
+          <section id="quickstart">
+            <h2>01 / Mulai dari kredensial.</h2>
+            <p>
+              <a href="/">Buat merchant workspace</a>. Registrasi mengeluarkan secret API key dan
+              webhook signing secret langsung, tanpa email verification atau approval. Simpan
+              keduanya di environment backend. Browser memakai sesi HttpOnly; key API tidak perlu
+              disimpan di frontend.
+            </p>
+            <pre id="createExample"></pre>
+            <p>
+              Gunakan checkout_url yang dikembalikan untuk membuka instruksi pembayaran. Simpan
+              payment ID, external ID, dan idempotency key pada aplikasi. Referensi harus unik per
+              pembayaran, termasuk percobaan DP/pelunasan baru.
+            </p>
+            <div class="notice">
+              Secret API key ditampilkan sekali. Jika hilang, terbitkan key baru. Jika key dicabut,
+              request berikutnya ditolak; transaksi lama tetap ada.
+            </div>
+          </section>
+          <section id="channels">
+            <h2>02 / Channel pembayaran.</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>QRIS Dynamic</th>
+                  <th>Virtual Account</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Nominal</td>
+                  <td>Rp1 - Rp10 juta</td>
+                  <td>Rp1 - Rp100 juta</td>
+                </tr>
+                <tr>
+                  <td>Batas waktu</td>
+                  <td>60-3600 detik, default 900</td>
+                  <td>60-604800 detik, default 86400</td>
+                </tr>
+                <tr>
+                  <td>Instrumen</td>
+                  <td>QR unik, amount-bound, sekali pakai</td>
+                  <td>Nomor unik 16 digit berawalan 999</td>
+                </tr>
+                <tr>
+                  <td>Provider label</td>
+                  <td>QRIS sandbox</td>
+                  <td>BCA, BNI, BRI, Mandiri, Permata</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              Untuk VA, ubah payment_method menjadi virtual_account dan tambahkan bank_code. Nominal
+              kurang/lebih ditolak tanpa receipt. Referensi bank yang sama tidak menghasilkan
+              penerimaan kedua.
+            </p>
+            <div class="notice warning">
+              QR berisi URL payer simulator, bukan payload EMV QRIS tersertifikasi. Pindai
+              menggunakan kamera atau klik Buka payer simulator. Nomor VA bukan nomor yang
+              diterbitkan bank. Jangan mengirim dana nyata.
+            </div>
+          </section>
+          <section id="webhook">
+            <h2>03 / Verifikasi sebelum membuka pesanan.</h2>
+            <p>
+              Atur receiver di Webhook & event. Signature dibuat atas timestamp, satu titik, dan raw
+              body JSON yang persis diterima. Periksa toleransi waktu 300 detik dan cocokkan
+              payload.id dengan X-Simulator-Event-Id.
+            </p>
+            <pre id="verifyExample"></pre>
+            <p>
+              Setelah signature valid, cocokkan merchant, payment ID, external ID, amount, dan IDR
+              dengan invoice. GET status dari backend untuk konfirmasi. Simpan event ID unik dan
+              perubahan invoice secara atomik; duplikat harus dibalas 2xx tanpa receipt kedua.
+            </p>
+            <p>
+              Initial delivery + 6 retries: 5s, 30s, 2m, 10m, 30m, 2h. Timeout 4 detik/non-2xx
+              memicu retry. ID dan payload event tetap, timestamp/signature diperbarui. Manual
+              replay tersedia; proses bisnis yang lama sebaiknya diantrekan secara durable.
+            </p>
+            <p>
+              Runnable receiver: <code>examples/merchant-app.mjs</code>. Laravel connection points:
+              <code>examples/laravel-integration.md</code>. Panduan PDF mencakup langkah
+              menjalankannya.
+            </p>
+          </section>
+          <section id="lifecycle">
+            <h2>04 / Lifecycle yang konsisten.</h2>
+            <pre>
+pending → paid / failed / expired / cancelled
+paid → refund.pending → refund.succeeded / refund.failed
+expired + late bank receipt → payment.late_received (review)</pre>
+            <p>
+              Status terminal tidak bisa diturunkan. Paid tidak menunggu webhook menjadi delivered.
+              Return URL hanya navigasi customer; aplikasi menunggu konfirmasi backend. Dana
+              terlambat tidak mengaktifkan ulang pembayaran.
+            </p>
+            <p>
+              POST payment/refund memerlukan Idempotency-Key (8-100 karakter). Reuse dengan body
+              yang sama mengembalikan resource yang sama; body berbeda mengembalikan 409. Retain key
+              setelah timeout. external_id juga unik per merchant. Refund pending/succeeded
+              mereservasi saldo yang dapat dikembalikan.
+            </p>
+          </section>
+          <section id="reference">
+            <h2>05 / Endpoint reference.</h2>
+            <p>
+              <a href="/openapi.json" target="_blank">Download OpenAPI 3.1 JSON ↗</a>. Endpoint /v1
+              menggunakan secret API key. Endpoint /portal menggunakan sesi workspace. Checkout
+              token adalah kapabilitas bearer untuk menjalankan skenario payer sandbox.
+            </p>
+            <div id="endpointList"></div>
+            <h3>HTTP errors</h3>
+            <p>
+              400 invalid JSON; 401 key/login; 403 origin/action; 404 missing/other merchant; 409
+              conflict/closed; 413 body limit; 422 validation; 429 rate limit. Semua JSON error
+              berisi code, message, dan request_id.
+            </p>
+          </section>
+          <section id="hosting">
+            <h2>06 / Dipakai bersama oleh banyak merchant.</h2>
+            <p>
+              Gunakan satu proses Node.js dengan persistent disk, HTTPS reverse proxy, serta backup
+              private data file. Akun/transaksi/key/retry queue disimpan secara atomik di
+              .data/gateway.json. Jangan menjalankan cluster atau replika dengan file yang sama.
+              Untuk skala lebih besar, gunakan transactional store dan queue terpisah.
+            </p>
+            <pre>
+HOST=0.0.0.0
+PORT=4179
+PUBLIC_BASE_URL=https://sandbox.your-domain.example
+ALLOW_LOCAL_WEBHOOKS=false
+DATA_FILE=/persistent/lumen/gateway.json</pre>
+            <p>
+              Public webhook harus HTTPS/443. Private/reserved IP, DNS rebinding ke jaringan privat,
+              URL credentials, dan redirects diblokir. Local HTTP callback hanya tersedia pada mode
+              development. Browser CORS lintas origin tidak diaktifkan; panggil API dari backend.
+            </p>
+            <p>
+              Default controls: 5 signup/jam/IP, 10 login/menit/IP, 120 request/menit per
+              merchant/API bucket, 300 request/menit/IP, body JSON 64 KB. Reverse proxy perlu per-IP
+              edge limits; server tidak mempercayai forwarded IP headers. Credential request tetap
+              otomatis tanpa approval.
+            </p>
+            <p>
+              Nomor/QR/pembayaran hanya uji. Email belum diverifikasi; pemulihan password/email
+              belum tersedia. Foto dan database booking tidak diubah. Repository ini belum
+              dipublikasikan ke host publik.
+            </p>
+          </section>
+        </article>
+      </div>
+      <footer class="landing-footer">
+        <span>Lumen Gateway · Integration guide v2</span><a href="/">Kembali ke workspace ↗</a>
+      </footer>
+      <section class="card">
+        <h2>Scan QR dari ponsel</h2>
+        <p>
+          QR mengarah ke GET /qris/{token}. Membuka URL langsung mencatat pembayaran simulasi dan
+          menampilkan konfirmasi; scan ulang tidak menambah receipt. Nominal selalu mengikuti data
+          server. Untuk Wi-Fi lokal, gunakan SCAN_HOST dan SCAN_BASE_URL=http://IP-KOMPUTER:4181.
+          Listener ini hanya membuka endpoint QR; portal tetap localhost. Aplikasi tetap
+          memverifikasi signed webhook dan status provider.
+        </p>
+      </section>
+    </main>
+    <script src="/docs.js" type="module"></script>
+  </body>
+</html>
